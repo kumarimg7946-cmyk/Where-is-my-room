@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.whereismyroom.app",
+      "sha256_cert_fingerprints": [
+        "14:6D:E9:7A:B4:72:6C:54:E5:8E:B0:0A:A6:49:EE:26:9B:4C:E6:F8:72:08:DA:31:07:95:90:3A:E1:97:DF:2A"
+      ]
+    }
+  }
+]

@@ -1,0 +1,43 @@
+{
+  "packageId": "com.whereismyroom.app",
+  "host": "where-is-my-room.web.app",
+  "name": "Where is my room",
+  "launcherName": "MyRoom",
+  "themeColor": "#4338CA",
+  "navigationColor": "#1E1B4B",
+  "backgroundColor": "#1E1B4B",
+  "enableNotifications": true,
+  "startUrl": "/",
+  "iconUrl": "https://raw.githubusercontent.com/whereismyroom/assets/main/pwa-512x512.png",
+  "maskableIconUrl": "https://raw.githubusercontent.com/whereismyroom/assets/main/pwa-maskable-512x512.png",
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [
+    {
+      "name": "Search Rooms",
+      "short_name": "Search",
+      "url": "/?tab=search",
+      "icon": "shortcut_search"
+    },
+    {
+      "name": "List Property",
+      "short_name": "Post Room",
+      "url": "/?tab=post",
+      "icon": "shortcut_post"
+    }
+  ],
+  "generator": "bubblewrap",
+  "minSdkVersion": 21,
+  "targetSdkVersion": 34,
+  "features": {
+    "playBilling": {
+      "enabled": false
+    },
+    "locationDelegation": {
+      "enabled": true
+    }
+  },
+  "alphaDependencies": {
+    "enabled": false
+  }
+}

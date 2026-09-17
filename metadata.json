@@ -1,0 +1,6 @@
+{
+  "name": "Where is my room",
+  "description": "Pan-India accommodation finder covering all state capitals and major cities, with dedicated categories for Room, PG, Hotel, Lounge, Flat, and retailer listing portal with ₹100 fee.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

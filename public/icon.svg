@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4338ca"/>
+      <stop offset="100%" stop-color="#312e81"/>
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+    <filter id="dropShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  
+  <!-- Rounded App Icon Background -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)"/>
+  
+  <!-- Outer Glow Circle -->
+  <circle cx="256" cy="256" r="210" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4"/>
+  
+  <!-- Stylized House Graphic -->
+  <g filter="url(#dropShadow)">
+    <!-- Roof -->
+    <path d="M128 240 L256 128 L384 240 L356 240 L356 368 C356 376 350 384 340 384 L172 384 C162 384 156 376 156 368 L156 240 Z" fill="#ffffff"/>
+    
+    <!-- Doorway -->
+    <rect x="228" y="272" width="56" height="112" rx="12" fill="url(#accentGrad)"/>
+    
+    <!-- Location Pin Overlay in Roof -->
+    <circle cx="256" cy="208" r="28" fill="url(#accentGrad)"/>
+    <circle cx="256" cy="208" r="12" fill="#ffffff"/>
+  </g>
+  
+  <!-- Small Brand Text Badge -->
+  <text x="256" y="440" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="28" fill="#e0e7ff" letter-spacing="4">WHERE IS MY ROOM</text>
+</svg>
