@@ -1,0 +1,50 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build web app
+        run: npm run build
+
+      - name: Install Bubblewrap
+        run: npm install -g @bubblewrap/cli
+
+      - name: Create TWA project
+        run: |
+          mkdir -p android-twa
+          cd android-twa
+          bubblewrap init --manifest ../playstore-twa-manifest.json --directory .
+
+      - name: Build APK
+        run: |
+          cd android-twa
+          bubblewrap build --skipPwaValidation
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Where-is-my-room-APK
+          path: |
+            android-twa/app-release.apk
+            android-twa/app-release-unsigned.apk
+          if-no-files-found: error
