@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
-import { Property, PropertyType, GenderPreference } from '../types';
+import { Property, PropertyType, GenderPreference, User } from '../types';
 import { 
   PlusCircle, Building, MapPin, IndianRupee, 
   Utensils, Wifi, Wind, Shirt, Bath, Check, Sparkles,
-  Image as ImageIcon, Clock
+  Image as ImageIcon, Clock, LogIn, KeyRound
 } from 'lucide-react';
 
 interface PostPropertyScreenProps {
   onAddProperty: (newProperty: Omit<Property, 'id' | 'created_at'>) => void;
   onSuccess: (newPropId: number) => void;
+  currentUser?: User | null;
+  onOpenLogin?: () => void;
 }
 
 const SAMPLE_ROOM_IMAGES = [
@@ -21,11 +23,13 @@ const SAMPLE_ROOM_IMAGES = [
 
 export const PostPropertyScreen: React.FC<PostPropertyScreenProps> = ({
   onAddProperty,
-  onSuccess
+  onSuccess,
+  currentUser,
+  onOpenLogin
 }) => {
   const [title, setTitle] = useState('');
   const [propertyType, setPropertyType] = useState<PropertyType>('PG');
-  const [city, setCity] = useState('Kota');
+  const [city, setCity] = useState(currentUser?.city || 'Kota');
   const [area, setArea] = useState('');
   const [address, setAddress] = useState('');
   const [rent, setRent] = useState(7500);
@@ -43,10 +47,19 @@ export const PostPropertyScreen: React.FC<PostPropertyScreenProps> = ({
   const [description, setDescription] = useState('');
   const [selectedImage, setSelectedImage] = useState(SAMPLE_ROOM_IMAGES[0]);
   const [customImageUrl, setCustomImageUrl] = useState('');
-  const [ownerName, setOwnerName] = useState('Rajesh Kumar (Owner)');
-  const [ownerPhone, setOwnerPhone] = useState('+91 98290 88990');
+  const [ownerName, setOwnerName] = useState(currentUser?.name || 'Rajesh Kumar (Owner)');
+  const [ownerPhone, setOwnerPhone] = useState(currentUser?.phone || '+91 98290 88990');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+
+  // Update when currentUser changes
+  React.useEffect(() => {
+    if (currentUser) {
+      setOwnerName(currentUser.name);
+      setOwnerPhone(currentUser.phone);
+      if (currentUser.city) setCity(currentUser.city);
+    }
+  }, [currentUser]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,9 +75,10 @@ export const PostPropertyScreen: React.FC<PostPropertyScreenProps> = ({
 
     setTimeout(() => {
       onAddProperty({
-        owner_id: 1,
+        owner_id: currentUser ? currentUser.id : 1,
         owner_name: ownerName,
         owner_phone: ownerPhone,
+        retailer_business_name: currentUser?.business_name || (ownerName.includes('(') ? ownerName : `${ownerName}'s Accommodation`),
         title,
         property_type: propertyType,
         city,
@@ -132,6 +146,38 @@ export const PostPropertyScreen: React.FC<PostPropertyScreenProps> = ({
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-7 shadow-xs space-y-6">
+            {/* Account Context Banner */}
+            {!currentUser ? (
+              <div className="p-3.5 bg-amber-50 rounded-xl border border-amber-200 flex items-center justify-between gap-3 text-xs">
+                <div className="flex items-center gap-2 text-amber-900">
+                  <KeyRound className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>You are listing as Guest. Sign in to easily manage bookings and edit inquiries.</span>
+                </div>
+                {onOpenLogin && (
+                  <button
+                    type="button"
+                    onClick={onOpenLogin}
+                    className="px-3 py-1.5 rounded-lg bg-indigo-600 text-white font-bold hover:bg-indigo-700 shrink-0 flex items-center gap-1 shadow-xs"
+                  >
+                    <LogIn className="w-3.5 h-3.5" />
+                    <span>Log In</span>
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="p-3 bg-indigo-50/80 rounded-xl border border-indigo-100 flex items-center justify-between text-xs text-indigo-900">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-xs">
+                    {currentUser.name.charAt(0)}
+                  </div>
+                  <span>Listing as <strong>{currentUser.name}</strong> ({currentUser.email})</span>
+                </div>
+                <span className="px-2 py-0.5 rounded-md bg-indigo-200/70 text-indigo-800 text-[10px] font-bold uppercase">
+                  {currentUser.user_type}
+                </span>
+              </div>
+            )}
+
             {/* Basic Info */}
             <div className="space-y-4">
               <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider text-indigo-600 flex items-center gap-1.5">

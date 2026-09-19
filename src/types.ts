@@ -23,6 +23,10 @@ export interface User {
   email: string;
   phone: string;
   user_type: UserType;
+  password?: string;
+  avatar_url?: string;
+  city?: string;
+  college_or_institute?: string;
   business_name?: string;
   gst_number?: string;
   created_at: string;
@@ -102,6 +106,11 @@ export interface Property {
   rating?: number;
   review_count?: number;
   category_details?: CategorySpecificDetails;
+  google_place_id?: string;
+  google_rating?: number;
+  google_reviews_count?: number;
+  verified_source?: string;
+  google_maps_url?: string;
 }
 
 export interface Review {
@@ -118,6 +127,21 @@ export interface Favourite {
   id: number;
   user_id: number;
   property_id: number;
+}
+
+export interface ScheduledVisit {
+  id: string | number;
+  property_id?: number;
+  property_title: string;
+  propertyTitle?: string;
+  city: string;
+  date: string;
+  time: string;
+  student_name?: string;
+  student_phone?: string;
+  status: 'Pending' | 'Confirmed' | 'Completed' | 'Cancelled';
+  created_at?: string;
+  notes?: string;
 }
 
 export interface PaymentRecord {

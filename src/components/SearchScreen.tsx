@@ -40,6 +40,7 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
   const [filterLaundry, setFilterLaundry] = useState(false);
   const [filterAttachedBath, setFilterAttachedBath] = useState(false);
   const [filterVerifiedOnly, setFilterVerifiedOnly] = useState(false);
+  const [filterGoogleVerifiedOnly, setFilterGoogleVerifiedOnly] = useState(false);
   const [sortBy, setSortBy] = useState<'recommended' | 'price_low' | 'price_high' | 'rating'>('recommended');
   const [showFilterDrawer, setShowFilterDrawer] = useState(false);
 
@@ -107,6 +108,9 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
       // Verified filter
       if (filterVerifiedOnly && !prop.verified) return false;
 
+      // Google Verified filter
+      if (filterGoogleVerifiedOnly && !prop.google_rating && !prop.google_place_id) return false;
+
       // Free text search
       if (searchTerm.trim()) {
         const query = searchTerm.toLowerCase();
@@ -115,8 +119,9 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
         const matchesState = prop.state?.toLowerCase().includes(query);
         const matchesArea = prop.area.toLowerCase().includes(query);
         const matchesDesc = prop.description.toLowerCase().includes(query);
+        const matchesSource = prop.verified_source?.toLowerCase().includes(query);
         const matchesNearby = prop.nearby_institutes?.some(inst => inst.toLowerCase().includes(query));
-        if (!matchesTitle && !matchesCity && !matchesState && !matchesArea && !matchesDesc && !matchesNearby) {
+        if (!matchesTitle && !matchesCity && !matchesState && !matchesArea && !matchesDesc && !matchesNearby && !matchesSource) {
           return false;
         }
       }
@@ -145,6 +150,7 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
     filterLaundry,
     filterAttachedBath,
     filterVerifiedOnly,
+    filterGoogleVerifiedOnly,
     searchTerm,
     sortBy
   ]);
@@ -164,6 +170,7 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
     setFilterLaundry(false);
     setFilterAttachedBath(false);
     setFilterVerifiedOnly(false);
+    setFilterGoogleVerifiedOnly(false);
     setSortBy('recommended');
   };
 
@@ -178,7 +185,8 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
     + (filterAC ? 1 : 0)
     + (filterLaundry ? 1 : 0)
     + (filterAttachedBath ? 1 : 0)
-    + (filterVerifiedOnly ? 1 : 0);
+    + (filterVerifiedOnly ? 1 : 0)
+    + (filterGoogleVerifiedOnly ? 1 : 0);
 
   const getCategoryBadgeClass = (type: PropertyType) => {
     switch (type) {
@@ -266,6 +274,19 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
             >
               <Landmark className="w-3 h-3" />
               <span>State Capitals</span>
+            </button>
+
+            {/* Google Verified Toggle Chip */}
+            <button
+              onClick={() => setFilterGoogleVerifiedOnly(!filterGoogleVerifiedOnly)}
+              className={`px-3 py-1.5 rounded-lg shrink-0 text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                filterGoogleVerifiedOnly
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'bg-white border border-slate-200 text-blue-700 hover:bg-blue-50'
+              }`}
+            >
+              <CheckCircle2 className={`w-3 h-3 ${filterGoogleVerifiedOnly ? 'text-white' : 'text-blue-500'}`} />
+              <span>Google Verified</span>
             </button>
 
             {/* City Selector */}
@@ -420,6 +441,11 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
                           {prop.application_fee_paid && (
                             <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                               ₹100 Paid
+                            </span>
+                          )}
+                          {prop.google_rating && (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-800 border border-blue-200 flex items-center gap-0.5">
+                              ★ {prop.google_rating} Google
                             </span>
                           )}
                         </div>

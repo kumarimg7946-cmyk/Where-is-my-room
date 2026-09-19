@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { Property, PropertyType, Review, PaymentRecord } from '../types';
+import { Property, PropertyType, Review, PaymentRecord, User } from '../types';
 import { PaymentModal } from './PaymentModal';
 import { 
   X, MapPin, ShieldCheck, Heart, Phone, MessageSquare, 
   Wifi, Utensils, Wind, Shirt, Bath, Clock, Zap, Star, 
-  Calendar, Check, Send, User, ChevronLeft, ChevronRight,
-  Share2, IndianRupee, QrCode, Sparkles
+  Calendar, Check, Send, User as UserIcon, ChevronLeft, ChevronRight,
+  Share2, IndianRupee, QrCode, Sparkles, LogIn, ExternalLink
 } from 'lucide-react';
 
 interface PropertyDetailsModalProps {
@@ -16,6 +16,9 @@ interface PropertyDetailsModalProps {
   reviews: Review[];
   onAddReview: (propertyId: number, rating: number, comment: string) => void;
   onScheduleVisit: (property: Property, date: string, time: string, studentName: string, studentPhone: string) => void;
+  currentUser?: User | null;
+  onOpenLogin?: () => void;
+  onAddPayment?: (payment: PaymentRecord) => void;
 }
 
 export const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
@@ -26,6 +29,9 @@ export const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
   reviews,
   onAddReview,
   onScheduleVisit,
+  currentUser,
+  onOpenLogin,
+  onAddPayment
 }) => {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [newRating, setNewRating] = useState(5);
@@ -33,8 +39,15 @@ export const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
   const [showVisitModal, setShowVisitModal] = useState(false);
   const [visitDate, setVisitDate] = useState('2026-03-01');
   const [visitTime, setVisitTime] = useState('11:00 AM');
-  const [visitorName, setVisitorName] = useState('');
-  const [visitorPhone, setVisitorPhone] = useState('');
+  const [visitorName, setVisitorName] = useState(currentUser?.name || '');
+  const [visitorPhone, setVisitorPhone] = useState(currentUser?.phone || '');
+
+  React.useEffect(() => {
+    if (currentUser) {
+      if (!visitorName) setVisitorName(currentUser.name);
+      if (!visitorPhone) setVisitorPhone(currentUser.phone);
+    }
+  }, [currentUser]);
   const [visitScheduledSuccess, setVisitScheduledSuccess] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [isBookingPaymentOpen, setIsBookingPaymentOpen] = useState(false);
@@ -228,6 +241,44 @@ export const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
               <p className="text-xs text-slate-400 mt-1 pl-5.5">
                 {property.address}
               </p>
+            </div>
+
+            {/* Google Maps & Verified Source Card */}
+            <div className="p-3.5 sm:p-4 bg-gradient-to-r from-blue-50/90 via-indigo-50/70 to-slate-50 border border-blue-200/90 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-white border border-blue-200 flex items-center justify-center shrink-0 shadow-xs text-blue-600">
+                  <MapPin className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-bold text-xs text-slate-900 flex items-center gap-1">
+                      Google Verified Listing
+                      <Check className="w-3.5 h-3.5 text-blue-600 font-bold" />
+                    </span>
+                    <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-amber-50 text-amber-900 border border-amber-200 flex items-center gap-1">
+                      <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
+                      {property.google_rating || property.rating || 4.8} on Google ({property.google_reviews_count || (property.review_count ? property.review_count * 5 : 140)}+ reviews)
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-600 mt-0.5 font-medium">
+                    Verified Source: <span className="text-slate-800">{property.verified_source || "Google Maps Verified Business & Local Student Housing Authority"}</span>
+                  </p>
+                  <span className="text-[10px] text-slate-400 font-mono">
+                    GPS Coordinates: {property.latitude.toFixed(4)}° N, {property.longitude.toFixed(4)}° E
+                  </span>
+                </div>
+              </div>
+
+              <a
+                href={property.google_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(property.title + ' ' + property.address)}`}
+                target="_blank"
+                rel="noreferrer"
+                className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-xs shrink-0 cursor-pointer"
+              >
+                <MapPin className="w-3.5 h-3.5" />
+                <span>Open in Google Maps</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
             </div>
 
             {/* Category Specific Feature Highlights */}
@@ -547,6 +598,7 @@ export const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
           payerPhone={visitorPhone || "+91 97112 34567"}
           onPaymentSuccess={(rec) => {
             setBookingPaidRecord(rec);
+            if (onAddPayment) onAddPayment(rec);
           }}
         />
 

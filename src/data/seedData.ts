@@ -1,4 +1,5 @@
-import { Property, User, Review } from '../types';
+import { Property, User, Review, ScheduledVisit, PaymentRecord } from '../types';
+import { VERIFIED_GOOGLE_PLACES } from './verifiedPlacesData';
 
 export const INITIAL_USERS: User[] = [
   {
@@ -7,8 +8,10 @@ export const INITIAL_USERS: User[] = [
     email: "ramesh.pg@gmail.com",
     phone: "+91 98290 12345",
     user_type: "owner",
+    password: "password123",
     business_name: "Allen & Resonance Stay Solutions",
     gst_number: "08AABCR1234F1Z5",
+    city: "Kota",
     created_at: "2026-01-10 10:30:00"
   },
   {
@@ -17,8 +20,10 @@ export const INITIAL_USERS: User[] = [
     email: "sunita.hostels@gmail.com",
     phone: "+91 98111 87654",
     user_type: "owner",
+    password: "password123",
     business_name: "North Campus Student Co-living",
     gst_number: "07AAACV9876G1Z2",
+    city: "Delhi",
     created_at: "2026-01-15 14:20:00"
   },
   {
@@ -27,6 +32,9 @@ export const INITIAL_USERS: User[] = [
     email: "aman.student@iitd.ac.in",
     phone: "+91 97112 34567",
     user_type: "student",
+    password: "password123",
+    city: "Kota",
+    college_or_institute: "Allen Career Institute, Kota",
     created_at: "2026-02-01 09:15:00"
   },
   {
@@ -35,9 +43,33 @@ export const INITIAL_USERS: User[] = [
     email: "pooja.residence@pune.ac.in",
     phone: "+91 94220 54321",
     user_type: "owner",
+    password: "password123",
     business_name: "Pune Tech Student Stays",
     gst_number: "27AABCP5555M1Z8",
+    city: "Pune",
     created_at: "2026-02-10 11:40:00"
+  },
+  {
+    id: 5,
+    name: "Sanjay Ghunawat",
+    email: "sanjayghunawat1998@gmail.com",
+    phone: "+91 98290 99887",
+    user_type: "student",
+    password: "password123",
+    city: "Kota",
+    college_or_institute: "Engineering & Medical Prep",
+    created_at: "2026-02-15 08:30:00"
+  },
+  {
+    id: 6,
+    name: "Super Admin (Moderator)",
+    email: "admin@whereismyroom.in",
+    phone: "+91 99999 88888",
+    user_type: "admin",
+    password: "admin123",
+    business_name: "Where is my room HQ",
+    city: "New Delhi",
+    created_at: "2026-01-01 00:00:00"
   }
 ];
 
@@ -638,7 +670,8 @@ export const INITIAL_PROPERTIES: Property[] = [
       study_hall_capacity: 40,
       visitor_policy: "Parents allowed during visiting hours"
     }
-  }
+  },
+  ...VERIFIED_GOOGLE_PLACES
 ];
 
 export const INITIAL_REVIEWS: Review[] = [
@@ -670,3 +703,146 @@ export const INITIAL_REVIEWS: Review[] = [
     created_at: "2026-02-21"
   }
 ];
+
+export const INITIAL_SCHEDULED_VISITS: ScheduledVisit[] = [
+  {
+    id: 1,
+    property_id: 101,
+    property_title: "Allen Coaching Hub Boys PG with Study Desk",
+    propertyTitle: "Allen Coaching Hub Boys PG with Study Desk",
+    city: "Kota",
+    date: "2026-03-02",
+    time: "11:00 AM",
+    student_name: "Aman Gupta",
+    student_phone: "+91 97112 34567",
+    status: "Confirmed",
+    created_at: "2026-02-25 14:10:00",
+    notes: "Requires single room with AC and mess inquiry"
+  },
+  {
+    id: 2,
+    property_id: 102,
+    property_title: "North Campus DU Premium Girls PG & Hostel",
+    propertyTitle: "North Campus DU Premium Girls PG & Hostel",
+    city: "Delhi",
+    date: "2026-03-05",
+    time: "02:30 PM",
+    student_name: "Pooja Deshmukh",
+    student_phone: "+91 94220 54321",
+    status: "Pending",
+    created_at: "2026-02-26 10:20:00",
+    notes: "Parent visiting along for North Campus admission"
+  },
+  {
+    id: 3,
+    property_id: 103,
+    property_title: "Kota Study Nest - AC Double Sharing Room",
+    propertyTitle: "Kota Study Nest - AC Double Sharing Room",
+    city: "Kota",
+    date: "2026-03-06",
+    time: "04:00 PM",
+    student_name: "Sanjay Ghunawat",
+    student_phone: "+91 98290 99887",
+    status: "Confirmed",
+    created_at: "2026-02-27 16:45:00",
+    notes: "Looking for immediate move-in from March 10"
+  },
+  {
+    id: 4,
+    property_id: 104,
+    property_title: "Malviya Nagar Student Residency (Near MNIT)",
+    propertyTitle: "Malviya Nagar Student Residency (Near MNIT)",
+    city: "Jaipur",
+    date: "2026-03-08",
+    time: "10:30 AM",
+    student_name: "Vikram Rathore",
+    student_phone: "+91 98291 55667",
+    status: "Completed",
+    created_at: "2026-02-22 09:30:00",
+    notes: "Room inspected, deposit pending"
+  }
+];
+
+export const INITIAL_PAYMENTS: PaymentRecord[] = [
+  {
+    id: "PAY-WIMR-1001",
+    amount: 100,
+    payment_type: "retailer_application_fee",
+    payer_name: "Ramesh Sharma",
+    payer_phone: "+91 98290 12345",
+    payer_email: "ramesh.pg@gmail.com",
+    payment_mode: "UPI",
+    upi_id: "ramesh.stay@okaxis",
+    transaction_id: "TXN-SRF-829101",
+    status: "SUCCESS",
+    property_id: 101,
+    property_title: "Allen Coaching Hub Boys PG with Study Desk",
+    notes: "Official retailer ₹100 listing verification fee",
+    created_at: "2026-01-10 10:35:00"
+  },
+  {
+    id: "PAY-WIMR-1002",
+    amount: 100,
+    payment_type: "retailer_application_fee",
+    payer_name: "Sunita Gupta",
+    payer_phone: "+91 98111 87654",
+    payer_email: "sunita.hostels@gmail.com",
+    payment_mode: "Card",
+    card_last4: "4242",
+    transaction_id: "TXN-SRF-829102",
+    status: "SUCCESS",
+    property_id: 102,
+    property_title: "North Campus DU Premium Girls PG & Hostel",
+    notes: "Official retailer ₹100 listing verification fee",
+    created_at: "2026-01-15 14:25:00"
+  },
+  {
+    id: "PAY-WIMR-1003",
+    amount: 1000,
+    payment_type: "student_booking_token",
+    payer_name: "Aman Gupta",
+    payer_phone: "+91 97112 34567",
+    payer_email: "aman.student@iitd.ac.in",
+    payment_mode: "UPI",
+    upi_id: "amangupta@icici",
+    transaction_id: "TXN-SRF-829103",
+    status: "SUCCESS",
+    property_id: 101,
+    property_title: "Allen Coaching Hub Boys PG with Study Desk",
+    notes: "Advance room booking token reservation",
+    created_at: "2026-02-14 16:30:00"
+  },
+  {
+    id: "PAY-WIMR-1004",
+    amount: 100,
+    payment_type: "retailer_application_fee",
+    payer_name: "Rajesh Singhania",
+    payer_phone: "+91 98290 87654",
+    payer_email: "rajesh.singh@gmail.com",
+    payment_mode: "UPI",
+    upi_id: "singhstay@paytm",
+    transaction_id: "TXN-SRF-829104",
+    status: "SUCCESS",
+    property_id: 103,
+    property_title: "Kota Study Nest - AC Double Sharing Room",
+    notes: "Official retailer ₹100 listing verification fee",
+    created_at: "2026-01-18 11:15:00"
+  },
+  {
+    id: "PAY-WIMR-1005",
+    amount: 100,
+    payment_type: "retailer_application_fee",
+    payer_name: "Pooja Deshmukh",
+    payer_phone: "+91 94220 54321",
+    payer_email: "pooja.residence@pune.ac.in",
+    payment_mode: "NetBanking",
+    bank_name: "HDFC Bank",
+    transaction_id: "TXN-SRF-829105",
+    status: "SUCCESS",
+    property_id: 106,
+    property_title: "FC Road Pune Girls PG & Study Lounge",
+    notes: "Official retailer ₹100 listing verification fee",
+    created_at: "2026-02-10 11:45:00"
+  }
+];
+

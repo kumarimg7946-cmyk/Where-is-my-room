@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Property, PropertyType, User, Review } from './types';
-import { INITIAL_PROPERTIES, INITIAL_USERS, INITIAL_REVIEWS } from './data/seedData';
+import { Property, PropertyType, User, Review, UserType, PaymentRecord, ScheduledVisit } from './types';
+import { 
+  INITIAL_PROPERTIES, 
+  INITIAL_USERS, 
+  INITIAL_REVIEWS, 
+  INITIAL_PAYMENTS, 
+  INITIAL_SCHEDULED_VISITS 
+} from './data/seedData';
 import { HomeScreen } from './components/HomeScreen';
 import { SearchScreen } from './components/SearchScreen';
 import { FavouritesScreen } from './components/FavouritesScreen';
@@ -9,17 +15,56 @@ import { PostPropertyScreen } from './components/PostPropertyScreen';
 import { PropertyDetailsModal } from './components/PropertyDetailsModal';
 import { AdminDashboard } from './components/AdminDashboard';
 import { ArchitectureViewer } from './components/ArchitectureViewer';
+import { AuthModal } from './components/AuthModal';
+import { PlayStoreExportModal } from './components/PlayStoreExportModal';
 import { 
   Smartphone, ShieldCheck, Terminal, Heart, Home, 
   Search as SearchIcon, User as UserIcon, PlusCircle, 
-  Monitor, Layers, Sparkles
+  Monitor, Layers, Sparkles, LogIn, LogOut, UserPlus, KeyRound
 } from 'lucide-react';
 
 export default function App() {
-  // Persistence state
+  // Persistence state: Properties with verified Google seed data merged
   const [properties, setProperties] = useState<Property[]>(() => {
     const saved = localStorage.getItem('srf_properties');
-    return saved ? JSON.parse(saved) : INITIAL_PROPERTIES;
+    let propList: Property[] = [];
+    if (saved) {
+      try {
+        propList = JSON.parse(saved);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    const propMap = new Map<number, Property>();
+    INITIAL_PROPERTIES.forEach(p => propMap.set(p.id, p));
+    propList.forEach(p => {
+      propMap.set(p.id, { ...(propMap.get(p.id) || {}), ...p });
+    });
+    return Array.from(propMap.values());
+  });
+
+  // Users state with initial credentials merged
+  const [users, setUsers] = useState<User[]>(() => {
+    const saved = localStorage.getItem('wimr_users');
+    let userList: User[] = [];
+    if (saved) {
+      try {
+        userList = JSON.parse(saved);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    const userMap = new Map<string, User>();
+    INITIAL_USERS.forEach(u => userMap.set(u.email.toLowerCase(), u));
+    userList.forEach(u => {
+      if (userMap.has(u.email.toLowerCase())) {
+        const init = userMap.get(u.email.toLowerCase())!;
+        userMap.set(u.email.toLowerCase(), { ...init, ...u, password: u.password || init.password || 'password123' });
+      } else {
+        userMap.set(u.email.toLowerCase(), u);
+      }
+    });
+    return Array.from(userMap.values());
   });
 
   const [favorites, setFavorites] = useState<number[]>(() => {
@@ -32,24 +77,38 @@ export default function App() {
     return saved ? JSON.parse(saved) : INITIAL_REVIEWS;
   });
 
-  const [scheduledVisits, setScheduledVisits] = useState<Array<{
-    propertyTitle: string;
-    city: string;
-    date: string;
-    time: string;
-  }>>(() => {
+  // Scheduled Visits state
+  const [scheduledVisits, setScheduledVisits] = useState<ScheduledVisit[]>(() => {
     const saved = localStorage.getItem('srf_scheduled_visits');
-    return saved ? JSON.parse(saved) : [
-      {
-        propertyTitle: "Allen Coaching Hub Boys PG with Study Desk",
-        city: "Kota",
-        date: "2026-03-02",
-        time: "11:00 AM"
-      }
-    ];
+    return saved ? JSON.parse(saved) : INITIAL_SCHEDULED_VISITS;
   });
 
-  const [currentUser, setCurrentUser] = useState<User>(INITIAL_USERS[2]); // Aman Gupta (student)
+  // Payments / Transactions state (₹100 retailer fees & booking tokens)
+  const [payments, setPayments] = useState<PaymentRecord[]>(() => {
+    const saved = localStorage.getItem('srf_payments');
+    return saved ? JSON.parse(saved) : INITIAL_PAYMENTS;
+  });
+
+  // Current authenticated user (or null if guest/logged out)
+  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    const saved = localStorage.getItem('wimr_current_user');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    // Default to Aman Gupta (student) for instant demo experience
+    return INITIAL_USERS[2];
+  });
+
+  // Auth modal control
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authModalTab, setAuthModalTab] = useState<'login' | 'signup'>('login');
+  
+  // Play Store & APK Export Modal control
+  const [isPlayStoreModalOpen, setIsPlayStoreModalOpen] = useState(false);
   
   // Navigation modes
   const [portalMode, setPortalMode] = useState<'mobile_app' | 'admin_portal' | 'backend_api'>('mobile_app');
@@ -70,6 +129,10 @@ export default function App() {
   }, [properties]);
 
   useEffect(() => {
+    localStorage.setItem('wimr_users', JSON.stringify(users));
+  }, [users]);
+
+  useEffect(() => {
     localStorage.setItem('srf_favorites', JSON.stringify(favorites));
   }, [favorites]);
 
@@ -81,7 +144,76 @@ export default function App() {
     localStorage.setItem('srf_scheduled_visits', JSON.stringify(scheduledVisits));
   }, [scheduledVisits]);
 
-  // Handlers
+  useEffect(() => {
+    localStorage.setItem('srf_payments', JSON.stringify(payments));
+  }, [payments]);
+
+  useEffect(() => {
+    if (currentUser) {
+      localStorage.setItem('wimr_current_user', JSON.stringify(currentUser));
+    } else {
+      localStorage.removeItem('wimr_current_user');
+    }
+  }, [currentUser]);
+
+  // Auth Handlers
+  const handleOpenLogin = () => {
+    setAuthModalTab('login');
+    setIsAuthModalOpen(true);
+  };
+
+  const handleOpenSignUp = () => {
+    setAuthModalTab('signup');
+    setIsAuthModalOpen(true);
+  };
+
+  const handleLoginSuccess = (user: User) => {
+    setCurrentUser(user);
+    setUsers(prev => {
+      const exists = prev.some(u => u.id === user.id || u.email.toLowerCase() === user.email.toLowerCase());
+      if (exists) {
+        return prev.map(u => (u.id === user.id || u.email.toLowerCase() === user.email.toLowerCase()) ? user : u);
+      }
+      return [user, ...prev];
+    });
+    setIsAuthModalOpen(false);
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+  };
+
+  const handleUpdateUser = (updatedUser: User) => {
+    setCurrentUser(updatedUser);
+    setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
+  };
+
+  // Direct User Management Handlers for Admin
+  const handleAddUser = (newUserData: Omit<User, 'id' | 'created_at'>) => {
+    const newId = Math.max(...users.map(u => u.id), 10) + 1;
+    const newUser: User = {
+      ...newUserData,
+      id: newId,
+      created_at: new Date().toISOString().replace('T', ' ').slice(0, 19)
+    };
+    setUsers(prev => [newUser, ...prev]);
+  };
+
+  const handleUpdateUserDirect = (updatedUser: User) => {
+    setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
+    if (currentUser && currentUser.id === updatedUser.id) {
+      setCurrentUser(updatedUser);
+    }
+  };
+
+  const handleDeleteUser = (userId: number) => {
+    setUsers(prev => prev.filter(u => u.id !== userId));
+    if (currentUser && currentUser.id === userId) {
+      setCurrentUser(null);
+    }
+  };
+
+  // Property & interaction handlers
   const handleToggleFavorite = (id: number) => {
     setFavorites(prev => 
       prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
@@ -114,12 +246,16 @@ export default function App() {
     setProperties(prev => [propertyRecord, ...prev]);
   };
 
+  const handleUpdateProperty = (updated: Property) => {
+    setProperties(prev => prev.map(p => p.id === updated.id ? updated : p));
+  };
+
   const handleAddReview = (propertyId: number, rating: number, comment: string) => {
     const newRev: Review = {
       id: Date.now(),
       property_id: propertyId,
-      user_id: currentUser.id,
-      user_name: currentUser.name,
+      user_id: currentUser ? currentUser.id : 999,
+      user_name: currentUser ? currentUser.name : "Verified Student",
       rating,
       review: comment,
       created_at: new Date().toISOString().split('T')[0]
@@ -141,20 +277,59 @@ export default function App() {
     }));
   };
 
+  const handleDeleteReview = (reviewId: number) => {
+    setReviews(prev => prev.filter(r => r.id !== reviewId));
+  };
+
   const handleScheduleVisit = (
     prop: Property, 
     date: string, 
     time: string, 
-    _studentName: string, 
-    _studentPhone: string
+    studentName: string, 
+    studentPhone: string
   ) => {
-    const newVisit = {
+    const newVisit: ScheduledVisit = {
+      id: Date.now(),
+      property_id: prop.id,
+      property_title: prop.title,
       propertyTitle: prop.title,
       city: prop.city,
       date,
-      time
+      time,
+      student_name: studentName || (currentUser ? currentUser.name : "Student Aspirant"),
+      student_phone: studentPhone || (currentUser ? currentUser.phone : "+91 97112 34567"),
+      status: "Confirmed",
+      created_at: new Date().toISOString().replace('T', ' ').slice(0, 19),
+      notes: "Scheduled via Applet Visit Booking"
     };
     setScheduledVisits(prev => [newVisit, ...prev]);
+  };
+
+  // Visit Management Handlers for Admin
+  const handleAddVisit = (newVisitData: Omit<ScheduledVisit, 'id' | 'created_at'>) => {
+    const newVisit: ScheduledVisit = {
+      ...newVisitData,
+      id: Date.now(),
+      created_at: new Date().toISOString().replace('T', ' ').slice(0, 19)
+    };
+    setScheduledVisits(prev => [newVisit, ...prev]);
+  };
+
+  const handleUpdateVisitStatus = (visitId: string | number, status: ScheduledVisit['status']) => {
+    setScheduledVisits(prev => prev.map(v => v.id === visitId ? { ...v, status } : v));
+  };
+
+  const handleDeleteVisit = (visitId: string | number) => {
+    setScheduledVisits(prev => prev.filter(v => v.id !== visitId));
+  };
+
+  // Payment Handlers
+  const handleAddPayment = (newPayment: PaymentRecord) => {
+    setPayments(prev => [newPayment, ...prev]);
+  };
+
+  const handleDeletePayment = (paymentId: string) => {
+    setPayments(prev => prev.filter(p => p.id !== paymentId));
   };
 
   // Admin moderation handlers
@@ -180,14 +355,45 @@ export default function App() {
     setProperties(prev => prev.filter(p => p.id !== id));
   };
 
+  // Full Database Backup & Restore Handlers
+  const handleRestoreAllData = (data: {
+    properties?: Property[];
+    users?: User[];
+    scheduledVisits?: ScheduledVisit[];
+    payments?: PaymentRecord[];
+    reviews?: Review[];
+  }) => {
+    if (data.properties && Array.isArray(data.properties)) setProperties(data.properties);
+    if (data.users && Array.isArray(data.users)) setUsers(data.users);
+    if (data.scheduledVisits && Array.isArray(data.scheduledVisits)) setScheduledVisits(data.scheduledVisits);
+    if (data.payments && Array.isArray(data.payments)) setPayments(data.payments);
+    if (data.reviews && Array.isArray(data.reviews)) setReviews(data.reviews);
+  };
+
+  const handleResetAllData = () => {
+    setProperties(INITIAL_PROPERTIES);
+    setUsers(INITIAL_USERS);
+    setScheduledVisits(INITIAL_SCHEDULED_VISITS);
+    setPayments(INITIAL_PAYMENTS);
+    setReviews(INITIAL_REVIEWS);
+    localStorage.removeItem('srf_properties');
+    localStorage.removeItem('wimr_users');
+    localStorage.removeItem('srf_scheduled_visits');
+    localStorage.removeItem('srf_payments');
+    localStorage.removeItem('srf_reviews');
+  };
+
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col text-slate-900 font-sans selection:bg-indigo-500 selection:text-white">
       {/* Top Application Switcher Bar */}
       <header className="bg-indigo-950 text-white border-b border-indigo-900/60 px-4 py-2.5 sticky top-0 z-40 shadow-sm flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center font-black text-white shadow-xs text-xs tracking-tight">
-            WIMR
-          </div>
+          <img 
+            src="/app-logo.png" 
+            alt="Where is my room Logo" 
+            className="w-8 h-8 rounded-lg object-cover shadow-xs border border-indigo-400/30 shrink-0" 
+            referrerPolicy="no-referrer" 
+          />
           <div>
             <div className="font-bold text-sm tracking-tight flex items-center gap-1.5">
               Where is my room
@@ -196,7 +402,7 @@ export default function App() {
               </span>
             </div>
             <div className="text-[10px] text-indigo-300">
-              State Capitals &bull; Major Student Cities
+              State Capitals &bull; Major Student Cities &bull; Live Auth
             </div>
           </div>
         </div>
@@ -241,31 +447,94 @@ export default function App() {
             <Terminal className="w-3.5 h-3.5" />
             <span>Backend & DB</span>
           </button>
+
+          <button
+            id="nav-playstore-hub-btn"
+            onClick={() => setIsPlayStoreModalOpen(true)}
+            className="px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition-all bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-xs ml-1"
+            title="Generate APK / Android App Bundle (.aab) for Google Play Store"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
+            <span className="hidden sm:inline">Play Store & APK</span>
+            <span className="sm:hidden">APK</span>
+          </button>
         </div>
 
-        {/* Mobile Viewport Toggle (Phone Frame vs Full Screen) */}
-        {portalMode === 'mobile_app' && (
-          <div className="hidden sm:flex items-center bg-indigo-900/60 p-1 rounded-xl border border-indigo-800 text-xs">
-            <button
-              onClick={() => setDeviceFrame('phone')}
-              title="View in Mobile Phone Frame"
-              className={`p-1.5 rounded-lg transition-colors ${
-                deviceFrame === 'phone' ? 'bg-indigo-600 text-white' : 'text-indigo-300 hover:text-white'
-              }`}
-            >
-              <Smartphone className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setDeviceFrame('full')}
-              title="View in Full Responsive Width"
-              className={`p-1.5 rounded-lg transition-colors ${
-                deviceFrame === 'full' ? 'bg-indigo-600 text-white' : 'text-indigo-300 hover:text-white'
-              }`}
-            >
-              <Monitor className="w-4 h-4" />
-            </button>
-          </div>
-        )}
+        {/* Right Section: Auth State & Device Frame */}
+        <div className="flex items-center gap-2">
+          {currentUser ? (
+            <div className="flex items-center gap-1.5">
+              <button
+                id="topbar-user-profile-btn"
+                onClick={() => {
+                  setMobileTab('profile');
+                  setPortalMode('mobile_app');
+                }}
+                className="flex items-center gap-2 pl-2 pr-2.5 py-1 rounded-xl bg-indigo-900/80 hover:bg-indigo-800/90 border border-indigo-700/60 text-xs font-semibold text-white transition-colors"
+                title="View Profile & Settings"
+              >
+                <div className="w-5 h-5 rounded-md bg-indigo-500 text-white flex items-center justify-center font-bold text-[10px] shadow-xs">
+                  {currentUser.name.charAt(0)}
+                </div>
+                <span className="max-w-[85px] sm:max-w-[120px] truncate">{currentUser.name.split(' ')[0]}</span>
+                <span className="text-[10px] font-bold text-indigo-300 uppercase hidden sm:inline">
+                  ({currentUser.user_type})
+                </span>
+              </button>
+              <button
+                id="topbar-signout-btn"
+                onClick={handleLogout}
+                className="p-1.5 rounded-lg bg-indigo-900/50 hover:bg-rose-900/50 text-indigo-300 hover:text-rose-200 border border-indigo-800 text-xs transition-colors"
+                title="Log Out"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5">
+              <button
+                id="topbar-login-btn"
+                onClick={handleOpenLogin}
+                className="px-2.5 py-1 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-colors shadow-xs flex items-center gap-1"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span>Log In</span>
+              </button>
+              <button
+                id="topbar-signup-btn"
+                onClick={handleOpenSignUp}
+                className="px-2.5 py-1 rounded-xl bg-indigo-900/80 hover:bg-indigo-800 text-indigo-200 hover:text-white border border-indigo-700 text-xs font-bold transition-colors flex items-center gap-1"
+              >
+                <UserPlus className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Sign Up</span>
+              </button>
+            </div>
+          )}
+
+          {/* Mobile Viewport Toggle (Phone Frame vs Full Screen) */}
+          {portalMode === 'mobile_app' && (
+            <div className="hidden sm:flex items-center bg-indigo-900/60 p-1 rounded-xl border border-indigo-800 text-xs">
+              <button
+                onClick={() => setDeviceFrame('phone')}
+                title="View in Mobile Phone Frame"
+                className={`p-1.5 rounded-lg transition-colors ${
+                  deviceFrame === 'phone' ? 'bg-indigo-600 text-white' : 'text-indigo-300 hover:text-white'
+                }`}
+              >
+                <Smartphone className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setDeviceFrame('full')}
+                title="View in Full Responsive Width"
+                className={`p-1.5 rounded-lg transition-colors ${
+                  deviceFrame === 'full' ? 'bg-indigo-600 text-white' : 'text-indigo-300 hover:text-white'
+                }`}
+              >
+                <Monitor className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+        </div>
       </header>
 
       {/* Main Content Area */}
@@ -274,35 +543,41 @@ export default function App() {
           <div className="w-full">
             <AdminDashboard
               properties={properties}
+              onUpdateProperty={handleUpdateProperty}
+              onAddProperty={handleAddProperty}
               onToggleVerify={handleToggleVerify}
               onToggleAvailability={handleToggleAvailability}
               onDeleteProperty={handleDeleteProperty}
               onSelectProperty={(prop) => setSelectedProperty(prop)}
+              users={users}
+              onAddUser={handleAddUser}
+              onUpdateUser={handleUpdateUserDirect}
+              onDeleteUser={handleDeleteUser}
+              scheduledVisits={scheduledVisits}
+              onAddVisit={handleAddVisit}
+              onUpdateVisitStatus={handleUpdateVisitStatus}
+              onDeleteVisit={handleDeleteVisit}
+              payments={payments}
+              onAddPayment={handleAddPayment}
+              onDeletePayment={handleDeletePayment}
+              reviews={reviews}
+              onDeleteReview={handleDeleteReview}
+              onRestoreAllData={handleRestoreAllData}
+              onResetAllData={handleResetAllData}
+              onOpenPlayStoreHub={() => setIsPlayStoreModalOpen(true)}
             />
           </div>
         ) : portalMode === 'backend_api' ? (
           <div className="w-full">
-            <ArchitectureViewer
-              properties={properties}
-              users={INITIAL_USERS}
-              reviews={reviews}
-            />
+            <ArchitectureViewer />
           </div>
         ) : (
-          /* Student Mobile App View (Flutter Experience) */
-          <div className={`w-full ${deviceFrame === 'phone' ? 'max-w-sm my-6 rounded-[38px] border-8 border-slate-900 shadow-2xl overflow-hidden bg-slate-900' : 'max-w-4xl'}`}>
-            {/* Phone Frame Status Bar */}
-            {deviceFrame === 'phone' && (
-              <div className="bg-indigo-700 text-white px-5 pt-2 pb-1 flex items-center justify-between text-[11px] font-semibold select-none">
-                <span>9:41</span>
-                <div className="w-16 h-4 bg-slate-900 rounded-full mx-auto" />
-                <div className="flex items-center gap-1.5">
-                  <span>5G</span>
-                  <span>100%</span>
-                </div>
-              </div>
-            )}
-
+          /* Mobile App View (Flutter Layout emulation) */
+          <div className={`w-full transition-all duration-300 ${
+            deviceFrame === 'phone' 
+              ? 'max-w-[430px] my-6 rounded-[36px] overflow-hidden border-[8px] border-slate-900 shadow-2xl bg-white' 
+              : 'max-w-4xl w-full'
+          }`}>
             <div className="relative bg-slate-50 min-h-[700px] flex flex-col justify-between">
               {/* Screen Rendering Based on Tab */}
               <div className="flex-1">
@@ -319,6 +594,11 @@ export default function App() {
                     onToggleFavorite={handleToggleFavorite}
                     searchQuery={searchQuery}
                     setSearchQuery={setSearchQuery}
+                    currentUser={currentUser}
+                    onOpenLogin={handleOpenLogin}
+                    onOpenSignUp={handleOpenSignUp}
+                    onNavigateToProfile={() => setMobileTab('profile')}
+                    onOpenPlayStoreHub={() => setIsPlayStoreModalOpen(true)}
                   />
                 )}
 
@@ -347,13 +627,22 @@ export default function App() {
                 {mobileTab === 'profile' && (
                   <ProfileScreen
                     currentUser={currentUser}
-                    onUpdateUserType={(type) => setCurrentUser(prev => ({ ...prev, user_type: type }))}
+                    onUpdateUserType={(type) => {
+                      if (currentUser) {
+                        handleUpdateUser({ ...currentUser, user_type: type });
+                      }
+                    }}
+                    onUpdateUser={handleUpdateUser}
+                    onOpenLogin={handleOpenLogin}
+                    onOpenSignUp={handleOpenSignUp}
+                    onLogout={handleLogout}
                     properties={properties}
                     favoritesCount={favorites.length}
                     scheduledVisits={scheduledVisits}
                     onNavigateToPostProperty={() => setMobileTab('post')}
                     onNavigateToSaved={() => setMobileTab('saved')}
                     onSelectProperty={(prop) => setSelectedProperty(prop)}
+                    onOpenPlayStoreHub={() => setIsPlayStoreModalOpen(true)}
                   />
                 )}
 
@@ -361,6 +650,8 @@ export default function App() {
                   <PostPropertyScreen
                     onAddProperty={handleAddProperty}
                     onSuccess={() => setMobileTab('home')}
+                    currentUser={currentUser}
+                    onOpenLogin={handleOpenLogin}
                   />
                 )}
               </div>
@@ -368,7 +659,7 @@ export default function App() {
               {/* Bottom Navigation Bar - Exactly Matching Flutter NavigationBar */}
               <nav 
                 id="flutter-bottom-navigation-bar" 
-                className="fixed sm:sticky bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-slate-200 px-2 py-1.5 flex items-center justify-around shadow-lg"
+                className="sticky bottom-0 z-30 bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-2 flex items-center justify-around shadow-lg"
               >
                 <button
                   id="tab-home"
@@ -380,7 +671,7 @@ export default function App() {
                   }`}
                 >
                   <Home className={`w-5 h-5 ${mobileTab === 'home' ? 'stroke-[2.5px]' : ''}`} />
-                  <span className="text-[11px] mt-0.5">Home</span>
+                  <span className="text-[11px] mt-0.5">Explore</span>
                 </button>
 
                 <button
@@ -405,26 +696,28 @@ export default function App() {
                       : 'text-slate-500 hover:text-slate-900 font-medium'
                   }`}
                 >
-                  <PlusCircle className={`w-5 h-5 ${mobileTab === 'post' ? 'stroke-[2.5px]' : ''}`} />
-                  <span className="text-[11px] mt-0.5">List Room</span>
+                  <div className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-md -mt-3 mb-0.5 hover:bg-indigo-700 transition-colors">
+                    <PlusCircle className="w-5 h-5" />
+                  </div>
+                  <span className="text-[11px]">List Room</span>
                 </button>
 
                 <button
                   id="tab-saved"
                   onClick={() => setMobileTab('saved')}
-                  className={`relative flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all ${
+                  className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all relative ${
                     mobileTab === 'saved'
                       ? 'text-indigo-600 font-bold'
                       : 'text-slate-500 hover:text-slate-900 font-medium'
                   }`}
                 >
-                  <Heart className={`w-5 h-5 ${mobileTab === 'saved' ? 'fill-indigo-600 stroke-indigo-600' : ''}`} />
-                  <span className="text-[11px] mt-0.5">Saved</span>
+                  <Heart className={`w-5 h-5 ${mobileTab === 'saved' ? 'stroke-[2.5px] fill-indigo-600' : ''}`} />
                   {favorites.length > 0 && (
-                    <span className="absolute top-0 right-3 w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center">
+                    <span className="absolute top-1 right-3 w-4 h-4 bg-rose-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
                       {favorites.length}
                     </span>
                   )}
+                  <span className="text-[11px] mt-0.5">Saved</span>
                 </button>
 
                 <button
@@ -454,6 +747,23 @@ export default function App() {
         reviews={reviews}
         onAddReview={handleAddReview}
         onScheduleVisit={handleScheduleVisit}
+        currentUser={currentUser}
+        onOpenLogin={handleOpenLogin}
+        onAddPayment={handleAddPayment}
+      />
+
+      {/* Login & Sign-Up Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        initialTab={authModalTab}
+        onLoginSuccess={handleLoginSuccess}
+      />
+
+      {/* Google Play Store & APK Generation Hub Modal */}
+      <PlayStoreExportModal
+        isOpen={isPlayStoreModalOpen}
+        onClose={() => setIsPlayStoreModalOpen(false)}
       />
     </div>
   );

@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { Property, PropertyType } from '../types';
+import { Property, PropertyType, User } from '../types';
 import { 
   Search, Heart, MapPin, Building2, ShieldCheck, 
   Sparkles, Wifi, Utensils, Wind, ChevronRight,
   TrendingUp, Award, CheckCircle2, Hotel, BedDouble,
-  BookOpen, Layers, Home, Landmark, Compass
+  BookOpen, Layers, Home, Landmark, Compass, LogIn, User as UserIcon
 } from 'lucide-react';
 import { INDIAN_STATES_DATA, getAllIndianStates } from '../data/indianCities';
 import { PWAInstallButton } from './PWAInstallButton';
@@ -23,6 +23,10 @@ interface HomeScreenProps {
   onToggleFavorite: (id: number) => void;
   searchQuery: string;
   setSearchQuery: (val: string) => void;
+  currentUser?: User | null;
+  onOpenLogin?: () => void;
+  onOpenSignUp?: () => void;
+  onNavigateToProfile?: () => void;
 }
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({
@@ -38,7 +42,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   favorites,
   onToggleFavorite,
   searchQuery,
-  setSearchQuery
+  setSearchQuery,
+  currentUser,
+  onOpenLogin,
+  onOpenSignUp,
+  onNavigateToProfile
 }) => {
   const [selectedExplorerState, setSelectedExplorerState] = useState<string>('Rajasthan');
   const allStatesList = getAllIndianStates();
@@ -170,28 +178,57 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       {/* Flutter Style AppBar */}
       <header className="sticky top-0 z-30 bg-indigo-700 text-white px-4 py-3.5 shadow-md flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-white/15 flex items-center justify-center font-bold text-white shadow-xs">
-            <Building2 className="w-5 h-5" />
-          </div>
+          <img 
+            src="/app-logo.png" 
+            alt="Where is my room Logo" 
+            className="w-8 h-8 rounded-xl object-cover shadow-xs border border-white/20 shrink-0" 
+            referrerPolicy="no-referrer" 
+          />
           <div>
             <h1 className="text-lg font-bold tracking-tight">Where is my room</h1>
             <p className="text-[11px] text-indigo-200">India's Verified Student PG & Hostel Network</p>
           </div>
         </div>
 
-        <button
-          id="appbar-fav-btn"
-          onClick={onNavigateToFavourites}
-          className="relative p-2 rounded-full hover:bg-white/15 transition-colors"
-          title="Saved listings"
-        >
-          <Heart className="w-5 h-5" />
-          {favorites.length > 0 && (
-            <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center">
-              {favorites.length}
-            </span>
+        <div className="flex items-center gap-2">
+          <button
+            id="appbar-fav-btn"
+            onClick={onNavigateToFavourites}
+            className="relative p-2 rounded-full hover:bg-white/15 transition-colors"
+            title="Saved listings"
+          >
+            <Heart className="w-5 h-5" />
+            {favorites.length > 0 && (
+              <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center">
+                {favorites.length}
+              </span>
+            )}
+          </button>
+
+          {currentUser ? (
+            <button
+              id="appbar-profile-btn"
+              onClick={onNavigateToProfile}
+              className="flex items-center gap-1.5 pl-1.5 pr-2.5 py-1 rounded-xl bg-white/15 hover:bg-white/25 border border-white/20 transition-all text-xs font-semibold"
+              title={`Logged in as ${currentUser.name}`}
+            >
+              <div className="w-6 h-6 rounded-lg bg-white text-indigo-900 flex items-center justify-center font-bold text-xs shadow-xs">
+                {currentUser.name.charAt(0)}
+              </div>
+              <span className="max-w-[70px] sm:max-w-[110px] truncate">{currentUser.name.split(' ')[0]}</span>
+            </button>
+          ) : (
+            <button
+              id="appbar-login-btn"
+              onClick={onOpenLogin}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white text-indigo-900 hover:bg-indigo-50 font-bold text-xs shadow-xs transition-colors"
+              title="Sign In / Register"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Log In</span>
+            </button>
           )}
-        </button>
+        </div>
       </header>
 
       <main className="max-w-4xl mx-auto px-4 pt-5 space-y-6">
@@ -344,6 +381,33 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               );
             })}
           </div>
+        </section>
+
+        {/* Google & Verified Source Live Database Strip */}
+        <section className="bg-gradient-to-r from-blue-900 via-indigo-950 to-slate-900 rounded-2xl p-3.5 text-white shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 border border-blue-800/40">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center shrink-0">
+              <CheckCircle2 className="w-5 h-5 text-blue-400" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-bold text-xs text-white">Google & Verified Sources Active</span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-500/30 text-blue-200 border border-blue-400/30">
+                  {properties.length} Verified Properties
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-300 mt-0.5">
+                Authentic data collected across Kota, Delhi, Pune, Bangalore, Jaipur, Indore, Vellore, Manipal & more.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => onNavigateToSearch()}
+            className="px-3.5 py-1.5 rounded-xl bg-white hover:bg-slate-100 text-indigo-950 font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-xs shrink-0 cursor-pointer"
+          >
+            <span>Search Verified Stays</span>
+            <Search className="w-3.5 h-3.5 text-indigo-700" />
+          </button>
         </section>
 
         {/* All India State Capitals & Major Cities Directory */}
@@ -519,6 +583,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                           {prop.application_fee_paid && (
                             <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                               ₹100 Paid
+                            </span>
+                          )}
+                          {prop.google_rating && (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-800 border border-blue-200 flex items-center gap-0.5">
+                              ★ {prop.google_rating} Google
                             </span>
                           )}
                         </div>
